@@ -1,0 +1,541 @@
+import React, { useState, useMemo, useEffect } from 'react';
+import { Search, SlidersHorizontal, FileDown, User, Phone, Wallet, Clock, Calendar, Lock, AlertTriangle, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Info } from 'lucide-react';
+
+// --- Mock Data (模擬數據) ---
+// Based on PRD V1.7 Data Models
+const mockMembers = [
+  {
+    id: 'player_vip01',
+    username: 'player_vip01',
+    phone: '0912****56',
+    status: 'enabled',
+    is_under_risk_control: true,
+    main_wallet_balance: 1250800.50,
+    last_login_time: '2025-08-10T14:12:05Z',
+    registration_time: '2025-08-01T10:30:15Z',
+    has_deposited: true,
+  },
+  {
+    id: 'suspicious_01',
+    username: 'suspicious_01',
+    phone: '0988****12',
+    status: 'enabled',
+    is_under_risk_control: true,
+    main_wallet_balance: 88.00,
+    last_login_time: '2025-08-09T23:50:01Z',
+    registration_time: '2025-08-03T11:20:45Z',
+    has_deposited: true,
+  },
+  {
+    id: 'finance_issue_99',
+    username: 'finance_issue_99',
+    phone: '0933****77',
+    status: 'disabled',
+    is_under_risk_control: true,
+    main_wallet_balance: 150.00,
+    last_login_time: '2025-07-22T18:00:00Z',
+    registration_time: '2025-07-22T17:30:15Z',
+    has_deposited: true,
+  },
+  {
+    id: 'kyc_pending_user',
+    username: 'kyc_pending_user',
+    phone: '0966****34',
+    status: 'enabled',
+    is_under_risk_control: false,
+    main_wallet_balance: 5320.00,
+    last_login_time: '2025-08-10T09:15:22Z',
+    registration_time: '2025-07-25T08:00:59Z',
+    has_deposited: true,
+  },
+  {
+    id: 'new_user_05',
+    username: 'new_user_05',
+    phone: '0911****88',
+    status: 'enabled',
+    is_under_risk_control: false,
+    main_wallet_balance: 0.00,
+    last_login_time: '2025-08-10T16:45:00Z',
+    registration_time: '2025-08-10T16:45:00Z',
+    has_deposited: false,
+  },
+];
+
+const mockMemberProfile = {
+  id: 'player_vip01',
+  status: 'enabled',
+  is_under_risk_control: true,
+  overview: {
+    financial_summary: { total_deposit: 1500000, total_withdrawal: 250000, total_bet: 8880500, total_win_loss: -250000 },
+    key_info: { creation_time: '2025-08-01T10:30:15Z', first_deposit_time: '2025-08-01T11:05:20Z', last_login_time: '2025-08-10T14:12:05Z', last_login_ip: '101.12.50.180', is_last_login_ip_flagged: true, registration_ip: '118.163.25.10', is_registration_ip_flagged: false, registration_device_id: 'A857-D9F8-G6H5-J4K3' },
+    tags: ['VIP', '老虎機愛好者', '高額玩家'],
+  },
+  account_info: { username: 'player_vip01', phone: '0912345678', real_name: '陳*文', email: 'player***@gmail.com', birth_date: '1990-05-20', gender: '男' },
+  kyc_info: { 
+    status: 'approved',
+    verified_data: {
+        real_name: '陳大文',
+        id_number: 'A12****5678',
+        birth_date: '1990-05-20',
+        address: '台北市信義區***路**號',
+    },
+    records: [{ id: 'kyc001', submission_time: '2025-08-02T10:00:00Z', image_url: 'https://placehold.co/300x200/E2E8F0/4A5568?text=證件正面', reviewer: 'admin01', result: '已通過', reason: '' }] 
+  },
+  finances: {
+    wallets: [
+      { type: 'main', name: '主帳戶', balance: 1250800.50, unsettled_bet: 15000.00, total_balance: 1265800.50, withdrawable_balance: 1200000.00, withdrawal_limit: 5000000.00 },
+      { type: 'game_bonus', name: '體育錢包', balance: 88000.00, withdrawable_balance: 0, promotion_name: '體育首存送100%', promotion_bonus: 500.00, wagering_requirement: 20000.00, wagering_progress_percent: 75.5 },
+      { type: 'game_bonus', name: '真人錢包', balance: 12500.00, withdrawable_balance: 0, promotion_name: '真人闖關活動', promotion_bonus: 888.00, wagering_requirement: 15000.00, wagering_progress_percent: 45.0 },
+      { type: 'game_bonus', name: '棋牌錢包', balance: 5300.00, withdrawable_balance: 5300.00, promotion_name: '棋牌VIP返利', promotion_bonus: 300.00, wagering_requirement: 5300.00, wagering_progress_percent: 100 },
+      { type: 'game_bonus', name: '老虎機錢包', balance: 150000.00, withdrawable_balance: 0, promotion_name: '老虎機救援金', promotion_bonus: 2000.00, wagering_requirement: 40000.00, wagering_progress_percent: 10.0 },
+    ],
+    transaction_history: [
+      { id: 'D001', time: '2025-08-10T13:00:00Z', type: '存款', amount: 50000, before_balance: 1200800.50, after_balance: 1250800.50, status: '成功', note: '銀行卡轉帳' },
+      { id: 'W001', time: '2025-08-09T18:30:00Z', type: '提款', amount: -20000, before_balance: 1220800.50, after_balance: 1200800.50, status: '成功', note: '' },
+      { id: 'B001', time: '2025-08-08T10:00:00Z', type: '紅利派發', amount: 500, before_balance: 1220300.50, after_balance: 1220800.50, status: '成功', note: 'VIP升級禮金' },
+      { id: 'ADJ01', time: '2025-08-07T15:00:00Z', type: '人工存入', amount: 1000, before_balance: 1219300.50, after_balance: 1220300.50, status: '成功', note: '客服補單(掉單處理)' },
+    ],
+  },
+  logs: {
+    logins: [{ time: '2025-08-10T14:12:05Z', ip: '101.12.50.180', location: '台灣', device: 'Chrome on Windows', result: '成功', reason: '' }],
+    account_changes: [{ time: '2025-08-05T10:00:00Z', operator: 'player_vip01', item: '修改密碼', before: '********', after: '********' }, { time: '2025-08-02T11:00:00Z', operator: 'admin01', item: '調整狀態', before: '啟用', after: '停用(風控測試)' }],
+  },
+  staff_notes: [{ time: '2025-08-09T11:00:00Z', operator: '客服 A', note: '會員來電詢問VIP活動詳情，已告知。' }],
+  active_risk_rules: [{ action: '禁止出款', reason: '流水不足，尚有 5000 流水未達成。', expires_at: '2025-08-15T23:59:59Z' }],
+};
+
+// --- Helper Components (輔助組件) ---
+const Card = ({ children, className = '' }) => <div className={`bg-white rounded-xl shadow-sm p-6 ${className}`}>{children}</div>;
+const Button = ({ children, onClick, variant = 'primary', className = '', disabled = false }) => {
+  const baseClasses = 'px-4 py-2 rounded-lg font-semibold focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed';
+  const variants = {
+    primary: 'bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500',
+    secondary: 'bg-gray-200 text-gray-800 hover:bg-gray-300 focus:ring-gray-400',
+    danger: 'bg-red-600 text-white hover:bg-red-700 focus:ring-red-500',
+  };
+  return <button onClick={onClick} disabled={disabled} className={`${baseClasses} ${variants[variant]} ${className}`}>{children}</button>;
+};
+const StatusBadge = ({ status }) => {
+  const variants = {
+    enabled: 'bg-green-100 text-green-800',
+    disabled: 'bg-gray-100 text-gray-800',
+    approved: 'bg-green-100 text-green-800',
+    pending: 'bg-yellow-100 text-yellow-800',
+    rejected: 'bg-red-100 text-red-800',
+  };
+  const text = {
+    enabled: '啟用',
+    disabled: '停用',
+    approved: '已通過',
+    pending: '審核中',
+    rejected: '已拒絕',
+  }
+  return <span className={`px-2 py-1 text-xs font-medium rounded-full ${variants[status]}`}>{text[status]}</span>;
+};
+const Tooltip = ({ content, children }) => (
+    <div className="relative flex items-center group">
+        {children}
+        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-max max-w-xs bg-gray-800 text-white text-sm rounded-md p-2 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10 pointer-events-none">
+            {content}
+        </div>
+    </div>
+);
+const formatDate = (dateString) => new Date(dateString).toLocaleString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }).replace(/\//g, '-');
+const formatCurrency = (amount) => `₱ ${new Intl.NumberFormat('en-US').format(amount.toFixed(2))}`;
+
+// --- Main App Component ---
+export default function App() {
+  const [currentPage, setCurrentPage] = useState('list');
+  const [selectedMember, setSelectedMember] = useState(null);
+  const [showModal, setShowModal] = useState(null);
+
+  const handleSelectMember = (member) => {
+    setSelectedMember(member);
+    setCurrentPage('dashboard');
+  };
+
+  const handleBackToList = () => {
+    setCurrentPage('list');
+    setSelectedMember(null);
+  };
+
+  const handleActionClick = (action) => {
+    setShowModal(action);
+  };
+
+  const Modal = ({ type, onClose }) => {
+      const [newStatus, setNewStatus] = useState(selectedMember.status);
+      const [isConfirming, setIsConfirming] = useState(false);
+
+      const handleConfirm = () => {
+          if (type === 'status' && newStatus === 'disabled' && !isConfirming) {
+              setIsConfirming(true);
+          } else {
+              onClose();
+          }
+      };
+
+      const renderStatusModal = () => (
+        <>
+          {!isConfirming ? (
+            <>
+              <h2 className="text-2xl font-bold text-gray-800 mb-4">調整帳號狀態</h2>
+              <div className="mb-6">
+                <label htmlFor="status-select" className="block text-sm font-medium text-gray-700 mb-2">為 {selectedMember.username} 選擇新狀態</label>
+                <select id="status-select" value={newStatus} onChange={(e) => setNewStatus(e.target.value)} className="w-full p-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
+                  <option value="enabled">啟用</option>
+                  <option value="disabled">停用</option>
+                </select>
+              </div>
+              <p className="text-gray-600 mb-8">請確認您的操作。</p>
+            </>
+          ) : (
+            <>
+              <h2 className="text-2xl font-bold text-red-600 mb-4 flex items-center gap-2"><AlertTriangle/> 二次確認</h2>
+              <p className="text-gray-600 mb-8">您確定要 **停用** 會員 {selectedMember.username} 的帳號嗎？<br/>此操作將導致會員無法登入。</p>
+            </>
+          )}
+          <div className="flex justify-end gap-4">
+            <Button variant="secondary" onClick={onClose}>取消</Button>
+            <Button variant={isConfirming ? 'danger' : 'primary'} onClick={handleConfirm}>
+              {isConfirming ? '確認停用' : '確認'}
+            </Button>
+          </div>
+        </>
+      );
+
+      const renderLogoutModal = () => (
+        <>
+          <h2 className="text-2xl font-bold text-red-600 mb-4 flex items-center gap-2"><AlertTriangle/> 確認強制下線</h2>
+          <p className="text-gray-600 mb-8">您確定要強制下線 {selectedMember.username} 嗎？此操作無法復原。</p>
+          <div className="flex justify-end gap-4">
+            <Button variant="secondary" onClick={onClose}>取消</Button>
+            <Button variant='danger' onClick={onClose}>確認下線</Button>
+          </div>
+        </>
+      );
+
+      return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl p-8 w-full max-w-md">
+            {type === 'status' ? renderStatusModal() : renderLogoutModal()}
+          </div>
+        </div>
+      );
+  };
+
+  return (
+    <div className="bg-gray-50 min-h-screen font-sans text-gray-800">
+      <div className="p-4 sm:p-8">
+        {currentPage === 'list' && <MemberListPage onSelectMember={handleSelectMember} />}
+        {currentPage === 'dashboard' && selectedMember && <MemberDashboardPage member={selectedMember} onBack={handleBackToList} onActionClick={handleActionClick} />}
+      </div>
+      {showModal && <Modal type={showModal} onClose={() => setShowModal(null)} />}
+    </div>
+  );
+}
+
+// --- Page Components ---
+function MemberListPage({ onSelectMember }) {
+  const [tempFilters, setTempFilters] = useState({ searchTerm: '', status: 'all', has_deposited: 'all' });
+  const [appliedFilters, setAppliedFilters] = useState(tempFilters);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
+
+  const handleSearch = () => {
+      setAppliedFilters(tempFilters);
+      setCurrentPage(1);
+  };
+
+  const handleReset = () => {
+      const initialFilters = { searchTerm: '', status: 'all', has_deposited: 'all' };
+      setTempFilters(initialFilters);
+      setAppliedFilters(initialFilters);
+      setCurrentPage(1);
+  };
+
+  const filteredMembers = useMemo(() => {
+    return mockMembers.filter(m => {
+      const searchTermMatch = m.username.toLowerCase().includes(appliedFilters.searchTerm.toLowerCase()) || m.phone.includes(appliedFilters.searchTerm);
+      const statusMatch = appliedFilters.status === 'all' || m.status === appliedFilters.status;
+      const depositMatch = appliedFilters.has_deposited === 'all' || String(m.has_deposited) === appliedFilters.has_deposited;
+      return searchTermMatch && statusMatch && depositMatch;
+    });
+  }, [appliedFilters]);
+  
+  const paginatedMembers = useMemo(() => {
+      const startIndex = (currentPage - 1) * itemsPerPage;
+      return filteredMembers.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredMembers, currentPage]);
+
+  const totalPages = Math.ceil(filteredMembers.length / itemsPerPage);
+
+  const handlePageChange = (newPage) => {
+      if (newPage >= 1 && newPage <= totalPages) {
+          setCurrentPage(newPage);
+      }
+  }
+
+  return (
+    <div className="space-y-6">
+      <h1 className="text-3xl font-bold text-gray-900">👥 會員查詢</h1>
+      <Card>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+          <div className="lg:col-span-2">
+            <label className="text-sm font-medium text-gray-700">搜尋</label>
+            <div className="relative mt-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <input 
+                type="text" 
+                placeholder="請輸入會員帳號或手機號碼" 
+                className="w-full pl-10 p-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                value={tempFilters.searchTerm}
+                onChange={(e) => setTempFilters({...tempFilters, searchTerm: e.target.value})}
+              />
+            </div>
+          </div>
+          <div>
+            <label className="text-sm font-medium text-gray-700">帳號狀態</label>
+            <select className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" value={tempFilters.status} onChange={(e) => setTempFilters({...tempFilters, status: e.target.value})}>
+              <option value="all">全部</option>
+              <option value="enabled">啟用</option>
+              <option value="disabled">停用</option>
+            </select>
+          </div>
+           <div>
+            <label className="text-sm font-medium text-gray-700">是否存款</label>
+            <select className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" value={tempFilters.has_deposited} onChange={(e) => setTempFilters({...tempFilters, has_deposited: e.target.value})}>
+              <option value="all">全部</option>
+              <option value="true">是</option>
+              <option value="false">否</option>
+            </select>
+          </div>
+        </div>
+        <div className="flex justify-end gap-2">
+          <Button variant="secondary" onClick={handleReset}>重設</Button>
+          <Button variant="primary" onClick={handleSearch}>搜尋</Button>
+        </div>
+      </Card>
+      
+      <Card>
+        <div className="flex justify-end items-center mb-4 gap-2">
+            <Button variant="secondary"><FileDown size={16}/> 匯出</Button>
+            <button className="p-2 rounded-md hover:bg-gray-100"><SlidersHorizontal size={16}/></button>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm text-left">
+            <thead className="bg-gray-50 text-gray-600 uppercase text-xs">
+              <tr>
+                <th className="p-4">會員帳號</th><th className="p-4">手機號碼</th><th className="p-4">狀態</th><th className="p-4">風控狀態</th><th className="p-4 text-right">主錢包餘額</th><th className="p-4">最後登入時間</th><th className="p-4">註冊時間</th><th className="p-4 text-center">操作</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y">
+              {paginatedMembers.map(member => (
+                <tr key={member.id} className="hover:bg-gray-50">
+                  <td className="p-4 font-medium text-gray-900 flex items-center gap-2"><User size={16} className="text-gray-400"/> {member.username}</td>
+                  <td className="p-4"><Phone size={16} className="inline-block mr-2 text-gray-400"/>{member.phone}</td>
+                  <td className="p-4"><StatusBadge status={member.status} /></td>
+                  <td className="p-4 text-center">{member.is_under_risk_control && <Tooltip content="該會員受風控規則影響"><Lock size={16} className="text-yellow-600"/></Tooltip>}</td>
+                  <td className="p-4 text-right font-mono"><Wallet size={16} className="inline-block mr-2 text-gray-400"/>{formatCurrency(member.main_wallet_balance)}</td>
+                  <td className="p-4"><Clock size={16} className="inline-block mr-2 text-gray-400"/>{formatDate(member.last_login_time)}</td>
+                  <td className="p-4"><Calendar size={16} className="inline-block mr-2 text-gray-400"/>{formatDate(member.registration_time)}</td>
+                  <td className="p-4 text-center"><button onClick={() => onSelectMember(member)} className="text-blue-600 hover:underline font-semibold">查看詳情</button></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        {paginatedMembers.length === 0 && <div className="text-center py-12 text-gray-500">找不到符合條件的會員，請嘗試更換篩選條件。</div>}
+        <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={handlePageChange} />
+      </Card>
+    </div>
+  );
+}
+
+function MemberDashboardPage({ member, onBack, onActionClick }) {
+  const [activeTab, setActiveTab] = useState('summary');
+  const profile = mockMemberProfile;
+
+  const tabs = [
+    { id: 'summary', label: '總覽' }, { id: 'account', label: '帳戶資訊' }, { id: 'kyc', label: 'KYC 資料' }, { id: 'finances', label: '錢包與帳務' }, { id: 'logs', label: '操作日誌' }, { id: 'notes', label: '人員備註' },
+  ];
+
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case 'summary': return <SummaryTab profile={profile} />;
+      case 'account': return <AccountInfoTab profile={profile} />;
+      case 'kyc': return <KycTab profile={profile} />;
+      case 'finances': return <FinancesTab profile={profile} />;
+      case 'logs': return <LogsTab profile={profile} />;
+      case 'notes': return <NotesTab profile={profile} />;
+      default: return null;
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-start">
+        <div>
+          <button onClick={onBack} className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-2">
+            <ChevronLeft size={20} /> 返回會員查詢
+          </button>
+          <div className="flex items-center gap-4">
+            <h1 className="text-3xl font-bold text-gray-900">{member.username}</h1>
+            <StatusBadge status={profile.status} />
+            {profile.is_under_risk_control && (
+                <Tooltip content={
+                    <div className="text-left">
+                        <p className="font-bold border-b pb-1 mb-1">生效中的風控規則</p>
+                        {profile.active_risk_rules.map((rule, i) => <p key={i}>• {rule.action}: {rule.reason}</p>)}
+                    </div>
+                }>
+                    <div className="flex items-center gap-1 bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-sm cursor-pointer">
+                        <Lock size={14} /> 風險管制中
+                    </div>
+                </Tooltip>
+            )}
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="secondary" onClick={() => onActionClick('status')}>調整狀態</Button>
+          <Button variant="danger" onClick={() => onActionClick('logout')}>強制下線</Button>
+        </div>
+      </div>
+
+      <div className="border-b border-gray-200">
+        <nav className="-mb-px flex space-x-6 overflow-x-auto" aria-label="Tabs">
+          {tabs.map(tab => (
+            <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`shrink-0 ${activeTab === tab.id ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}>
+              {tab.label}
+            </button>
+          ))}
+        </nav>
+      </div>
+      <div>{renderTabContent()}</div>
+    </div>
+  );
+}
+
+// --- Tab Components ---
+const SummaryTab = ({ profile }) => (
+  <div className="space-y-8">
+    <Card><h3 className="text-lg font-semibold mb-4">數據總覽</h3><div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center"><div><p className="text-sm text-gray-500">總存款</p><p className="text-2xl font-bold">{formatCurrency(profile.overview.financial_summary.total_deposit)}</p></div><div><p className="text-sm text-gray-500">總提款</p><p className="text-2xl font-bold">{formatCurrency(profile.overview.financial_summary.total_withdrawal)}</p></div><div><p className="text-sm text-gray-500">總投注</p><p className="text-2xl font-bold">{formatCurrency(profile.overview.financial_summary.total_bet)}</p></div><div><p className="text-sm text-gray-500">總輸贏</p><p className={`text-2xl font-bold ${profile.overview.financial_summary.total_win_loss < 0 ? 'text-red-600' : 'text-green-600'}`}>{formatCurrency(profile.overview.financial_summary.total_win_loss)}</p></div></div></Card>
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8"><Card><h3 className="text-lg font-semibold mb-4">關鍵時間點</h3><div className="space-y-3 text-sm"><div className="flex justify-between"><span>創帳時間</span><span className="font-mono">{formatDate(profile.overview.key_info.creation_time)}</span></div><div className="flex justify-between"><span>首次充值時間</span><span className="font-mono">{formatDate(profile.overview.key_info.first_deposit_time)}</span></div><div className="flex justify-between"><span>最後登入時間</span><span className="font-mono">{formatDate(profile.overview.key_info.last_login_time)}</span></div></div></Card><Card><h3 className="text-lg font-semibold mb-4">關鍵來源資訊</h3><div className="space-y-3 text-sm"><div className="flex justify-between items-center"><span>上次登入IP</span><span className="font-mono flex items-center gap-2">{profile.overview.key_info.last_login_ip} {profile.overview.key_info.is_last_login_ip_flagged && <Tooltip content="此IP已被風控標記"><AlertTriangle size={16} className="text-red-500"/></Tooltip>}</span></div><div className="flex justify-between"><span>註冊IP</span><span className="font-mono">{profile.overview.key_info.registration_ip}</span></div><div className="flex justify-between"><span>註冊裝置碼</span><span className="font-mono">{profile.overview.key_info.registration_device_id}</span></div></div></Card></div>
+    <Card><h3 className="text-lg font-semibold mb-4">玩家標籤</h3><div className="flex flex-wrap gap-2">{profile.overview.tags.map(tag => <span key={tag} className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm">{tag}</span>)}</div></Card>
+  </div>
+);
+
+const AccountInfoTab = ({ profile }) => (<Card><h3 className="text-lg font-semibold mb-6">基本資料</h3><div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 text-sm"><div className="flex justify-between border-b pb-2"><span className="text-gray-500">會員帳號</span><span>{profile.account_info.username}</span></div><div className="flex justify-between border-b pb-2"><span className="text-gray-500">手機號碼</span><span>{profile.account_info.phone}</span></div><div className="flex justify-between border-b pb-2"><span className="text-gray-500">真實姓名</span><span>{profile.account_info.real_name}</span></div><div className="flex justify-between border-b pb-2"><span className="text-gray-500">電子郵件</span><span>{profile.account_info.email}</span></div><div className="flex justify-between border-b pb-2"><span className="text-gray-500">生日</span><span>{profile.account_info.birth_date}</span></div><div className="flex justify-between border-b pb-2"><span className="text-gray-500">性別</span><span>{profile.account_info.gender}</span></div></div></Card>);
+
+const KycTab = ({ profile }) => (
+    <div className="space-y-8">
+        <Card>
+            <div className="flex items-center gap-4 mb-6">
+                <h3 className="text-lg font-semibold">KYC 狀態</h3>
+                <StatusBadge status={profile.kyc_info.status} />
+            </div>
+            <h4 className="text-md font-semibold mb-4">已驗證資料</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 text-sm bg-gray-50 p-4 rounded-lg">
+                <div className="flex justify-between"><span className="text-gray-500">認證姓名</span><span>{profile.kyc_info.verified_data.real_name}</span></div>
+                <div className="flex justify-between"><span className="text-gray-500">證件號碼</span><span>{profile.kyc_info.verified_data.id_number}</span></div>
+                <div className="flex justify-between"><span className="text-gray-500">認證生日</span><span>{profile.kyc_info.verified_data.birth_date}</span></div>
+                <div className="flex justify-between md:col-span-2"><span className="text-gray-500">認證地址</span><span>{profile.kyc_info.verified_data.address}</span></div>
+            </div>
+        </Card>
+        <Card>
+            <h4 className="text-md font-semibold mb-4">提交紀錄</h4>
+            <div className="overflow-x-auto"><table className="w-full text-sm"><thead className="bg-gray-50 text-left"><tr><th className="p-3">提交時間</th><th className="p-3">證件圖片</th><th className="p-3">審核人員</th><th className="p-3">審核結果</th></tr></thead><tbody>{profile.kyc_info.records.map(record => (<tr key={record.id} className="border-b"><td className="p-3">{formatDate(record.submission_time)}</td><td className="p-3"><img src={record.image_url} alt="證件" className="w-24 h-auto rounded-md cursor-pointer hover:opacity-80 transition-opacity" /></td><td className="p-3">{record.reviewer}</td><td className="p-3"><StatusBadge status={record.result === '已通過' ? 'approved' : 'rejected'} /></td></tr>))}</tbody></table></div>
+        </Card>
+    </div>
+);
+
+const FinancesTab = ({ profile }) => (
+    <div className="space-y-8">
+        <Card>
+            <h3 className="text-lg font-semibold mb-4">錢包總覽</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                {profile.finances.wallets.map(wallet => (
+                    <div key={wallet.name} className="bg-gray-50 p-4 rounded-lg border flex flex-col justify-between">
+                        <div>
+                            <h4 className="font-bold mb-2 text-gray-800">{wallet.name}</h4>
+                            {wallet.type === 'main' ? (
+                                <div className="space-y-2 text-sm">
+                                    <div className="flex justify-between"><span>現金餘額</span><span className="font-mono">{formatCurrency(wallet.balance)}</span></div>
+                                    <div className="flex justify-between"><span>下注未結額</span><span className="font-mono">{formatCurrency(wallet.unsettled_bet)}</span></div>
+                                    <div className="flex justify-between font-semibold border-t pt-2 mt-2"><span>合計餘額</span><span className="font-mono">{formatCurrency(wallet.total_balance)}</span></div>
+                                    <div className="flex justify-between text-green-600 font-semibold"><span>可提金額</span><span className="font-mono">{formatCurrency(wallet.withdrawable_balance)}</span></div>
+                                </div>
+                            ) : (
+                                 <div className="space-y-2 text-sm">
+                                    <p className="font-semibold text-blue-600 truncate" title={wallet.promotion_name}>{wallet.promotion_name}</p>
+                                    <div className="flex justify-between"><span>錢包餘額</span><span className="font-mono">{formatCurrency(wallet.balance)}</span></div>
+                                    <div className="w-full bg-gray-200 rounded-full h-2.5 mt-2">
+                                        <div className="bg-blue-600 h-2.5 rounded-full" style={{width: `${wallet.wagering_progress_percent}%`}}></div>
+                                    </div>
+                                    <div className="flex justify-between text-xs text-gray-500">
+                                        <span>流水達成率: {wallet.wagering_progress_percent}%</span>
+                                        <span>目標: {formatCurrency(wallet.wagering_requirement)}</span>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </Card>
+        <Card>
+            <h3 className="text-lg font-semibold mb-4">交易紀錄</h3>
+             <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 text-left">
+                  <tr>
+                    <th className="p-3">交易單號</th><th className="p-3">交易時間</th><th className="p-3">類型</th><th className="p-3 text-right">金額</th><th className="p-3 text-right">交易後餘額</th><th className="p-3">狀態</th><th className="p-3">備註</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {profile.finances.transaction_history.map(tx => (
+                    <tr key={tx.id} className="border-b">
+                      <td className="p-3 font-mono text-gray-500">{tx.id}</td>
+                      <td className="p-3">{formatDate(tx.time)}</td>
+                      <td className="p-3 font-medium">{tx.type}</td>
+                      <td className={`p-3 text-right font-mono ${tx.amount > 0 ? 'text-green-600' : 'text-red-600'}`}>{tx.amount > 0 ? '+' : ''}{formatCurrency(tx.amount)}</td>
+                      <td className="p-3 text-right font-mono text-gray-600">{formatCurrency(tx.after_balance)}</td>
+                      <td className="p-3"><StatusBadge status={tx.status === '成功' ? 'approved' : 'rejected'} /></td>
+                      <td className="p-3 text-gray-500">{tx.note}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+        </Card>
+    </div>
+);
+
+const LogsTab = ({ profile }) => {
+    const [activeLogTab, setActiveLogTab] = useState('login');
+    return (
+        <Card>
+            <div className="flex border-b mb-4"><button onClick={() => setActiveLogTab('login')} className={`py-2 px-4 ${activeLogTab === 'login' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500'}`}>登入紀錄</button><button onClick={() => setActiveLogTab('account')} className={`py-2 px-4 ${activeLogTab === 'account' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500'}`}>帳戶變動紀錄</button></div>
+            {activeLogTab === 'login' ? (
+                <div className="overflow-x-auto"><table className="w-full text-sm"><thead className="bg-gray-50 text-left"><tr><th className="p-3">時間</th><th className="p-3">IP位址</th><th className="p-3">地理位置</th><th className="p-3">登入裝置</th><th className="p-3">結果</th></tr></thead><tbody>{profile.logs.logins.map((log, i) => <tr key={i} className="border-b"><td className="p-3">{formatDate(log.time)}</td><td className="p-3">{log.ip}</td><td className="p-3">{log.location}</td><td className="p-3">{log.device}</td><td className="p-3"><StatusBadge status={log.result === '成功' ? 'approved' : 'rejected'} /></td></tr>)}</tbody></table></div>
+            ) : (
+                <div className="overflow-x-auto"><table className="w-full text-sm"><thead className="bg-gray-50 text-left"><tr><th className="p-3">時間</th><th className="p-3">操作人</th><th className="p-3">變更項目</th><th className="p-3">變更前</th><th className="p-3">變更後</th></tr></thead><tbody>{profile.logs.account_changes.map((log, i) => <tr key={i} className="border-b"><td className="p-3">{formatDate(log.time)}</td><td className="p-3">{log.operator}</td><td className="p-3">{log.item}</td><td className="p-3">{log.before}</td><td className="p-3">{log.after}</td></tr>)}</tbody></table></div>
+            )}
+        </Card>
+    );
+};
+
+const NotesTab = ({ profile }) => (<div className="grid grid-cols-1 lg:grid-cols-3 gap-8"><div className="lg:col-span-2"><Card><h3 className="text-lg font-semibold mb-4">歷史備註</h3><div className="space-y-4">{profile.staff_notes.map((note, i) => (<div key={i} className="bg-gray-50 p-4 rounded-lg"><p className="text-sm text-gray-800 mb-2">{note.note}</p><div className="text-xs text-gray-500 flex justify-end"><span>{note.operator} 於 {formatDate(note.time)}</span></div></div>))}</div></Card></div><div><Card><h3 className="text-lg font-semibold mb-4">新增備註</h3><textarea className="w-full p-2 border border-gray-300 rounded-lg h-32 focus:ring-blue-500 focus:border-blue-500" placeholder="請輸入備註內容..."></textarea><Button className="w-full mt-4">儲存</Button></Card></div></div>);
+
+const Pagination = ({ currentPage, totalPages, onPageChange }) => {
+    if (totalPages <= 1) return null;
+    return (
+        <div className="flex justify-center items-center mt-6 text-sm">
+            <button onClick={() => onPageChange(1)} disabled={currentPage === 1} className="p-2 rounded-md hover:bg-gray-100 disabled:opacity-50"><ChevronsLeft size={16}/></button>
+            <button onClick={() => onPageChange(currentPage - 1)} disabled={currentPage === 1} className="p-2 rounded-md hover:bg-gray-100 disabled:opacity-50"><ChevronLeft size={16}/></button>
+            <div className="mx-2">第 {currentPage} 頁 / 共 {totalPages} 頁</div>
+            <button onClick={() => onPageChange(currentPage + 1)} disabled={currentPage === totalPages} className="p-2 rounded-md hover:bg-gray-100 disabled:opacity-50"><ChevronRight size={16}/></button>
+            <button onClick={() => onPageChange(totalPages)} disabled={currentPage === totalPages} className="p-2 rounded-md hover:bg-gray-100 disabled:opacity-50"><ChevronsRight size={16}/></button>
+        </div>
+    );
+};
